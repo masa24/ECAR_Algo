@@ -1,7 +1,8 @@
 import cv2
 import neat
 import csv
-import numpy as np  # Added this import
+import numpy as np
+import pickle  # Import pickle for saving the model
 
 # Setup CSV file
 with open('neat_data.csv', mode='w', newline='') as file:
@@ -59,12 +60,12 @@ def eval_genomes(genomes, config, generation):
         
         outputs = net.activate(inputs)
         
-        # Placeholder values for fitness calculation
-        distance_travelled = 10.0
-        time_elapsed = 1.0
-        smoothness_penalty = 0.1
-        proximity_to_target = 5.0
-
+        # Placeholder values for fitness calculation - make sure these change
+        distance_travelled = np.random.rand() * 100  # Simulating variability
+        time_elapsed = np.random.rand() * 10
+        smoothness_penalty = np.random.rand()
+        proximity_to_target = np.random.rand() * 50
+        crash_car_collision = np.random.rand() * 1000
         genome.fitness = distance_travelled + time_elapsed - smoothness_penalty - proximity_to_target
 
         # Store data in CSV
@@ -87,10 +88,20 @@ def run_evolution(config_path, generations):
 
     for generation in range(generations):
         population.run(lambda genomes, config: eval_genomes(genomes, config, generation))
+        
+        # Get the best genome and mutate it
+        best_genome = max(population.population.values(), key=lambda g: g.fitness)
+        new_genome = pickle.loads(pickle.dumps(best_genome))  # Deep copy the best genome
+        new_genome.mutate(config.genome_config)  # Mutate the copied genome
+        population.population[new_genome.key] = new_genome  # Add the mutated genome back into the population
 
     return population.best_genome
 
 config_path = "config-feedforward.ini"
-generations = 50
+generations = 3
 winner = run_evolution(config_path, generations)
 print(f'Best genome:\n{winner}')
+
+# Save the best genome
+with open('best_genome.pkl', 'wb') as f:
+    pickle.dump(winner, f)
